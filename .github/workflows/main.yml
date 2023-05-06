@@ -18,7 +18,9 @@ jobs:
           python-version: 3.8
       - name: Install required Python libraries
         run: |
-          pip install -r requirements.txt
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
 
       - name: Build Docker image
         run: |
