@@ -7,5 +7,4 @@ pandas
 requests
 scikit-learn
 statsmodels
-airflow
 
