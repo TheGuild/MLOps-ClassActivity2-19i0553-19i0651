@@ -1,0 +1,68 @@
+name: sales-prediction-pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python environment
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install required Python libraries
+        run: |
+          pip install -r requirements.txt
+
+      - name: Build Docker image
+        run: |
+          docker build -t salesprediction:latest .
+        
+      - name: Push Docker image to Docker Hub
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          tags: |
+            registry.hub.docker.com/<username>/<repo-name>:latest
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Set up Airflow environment
+        run: |
+          apt-get update
+          apt-get install -y python3-dev libmysqlclient-dev
+          pip install apache-airflow
+          airflow db init
+          airflow users create \
+              --username admin \
+              --firstname Navira \
+              --lastname Munir \
+              --role Admin \
+              --email naviramunir@gmail.com
+          airflow webserver --daemon
+          airflow scheduler --daemon
+
+      - name: Create Airflow connection to Docker registry
+        run: |
+          airflow connections add docker_registry \
+              --conn-type 'docker' \
+              --conn-login '${{ secrets.DOCKER_USERNAME }}' \
+              --conn-password '${{ secrets.DOCKER_PASSWORD }}' \
+              --conn-host 'https://registry.hub.docker.com' \
+              --conn-port 443
+
+      - name: Trigger Airflow DAG
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USERNAME }}
+          password: ${{ secrets.REMOTE_PASSWORD }}
+          port: ${{ secrets.REMOTE_PORT }}
+          script: 'airflow dags trigger sales_prediction_dag'    
