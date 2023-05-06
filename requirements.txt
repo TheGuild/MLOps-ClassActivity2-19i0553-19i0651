@@ -1,0 +1,11 @@
+mlflow
+pmdarima
+numpy
+datefinder
+matplotlib
+pandas
+requests
+scikit-learn
+statsmodels
+airflow
+
